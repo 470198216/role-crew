@@ -26,8 +26,9 @@ class Settings(BaseSettings):
     llm_model: str = Field(default="qwen-plus", alias="LLM_MODEL")
     max_agent_steps: int = Field(default=12, alias="MAX_AGENT_STEPS")
     max_peer_depth: int = Field(default=2, alias="MAX_PEER_DEPTH")
+    github_token: str = Field(default="", alias="GITHUB_TOKEN")
 
-    @field_validator("llm_api_key", "llm_base_url", "llm_model", mode="before")
+    @field_validator("llm_api_key", "llm_base_url", "llm_model", "github_token", mode="before")
     @classmethod
     def _strip_env(cls, v: Any) -> Any:
         return v.strip() if isinstance(v, str) else v

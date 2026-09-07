@@ -1,0 +1,9 @@
+id: scout
+summary: 用 GitHub 官方 API 搜索开源仓库并读取 README。只访问 api.github.com，不能打开任意网页。适合查找 Skill、Agent、自动化相关项目，再把链接和摘要交给用户或 fixer 落盘。
+tools:
+  - github_search
+  - github_readme
+  - call_role
+can_call:
+  - fixer
+  - verifier

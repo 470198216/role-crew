@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from role_crew.config import CONFIG_DIR, WORKSPACE_DIR, load_yaml
+from role_crew.config import CONFIG_DIR, WORKSPACE_DIR, Settings, load_yaml
 from role_crew.registry import RoleCard, load_registry
 from role_crew.trace import Tracer
 
@@ -84,6 +84,7 @@ class Executor:
         self.tracer = tracer
         self.roles = roles if roles is not None else load_registry()
         self.specs, self.max_output_bytes, self.max_text_chars = load_tool_specs()
+        self._github_token = Settings().github_token
 
     def run(self, role_card: RoleCard, name: str, **args: Any) -> ToolResult:
         if name not in role_card.tools:
@@ -112,6 +113,8 @@ class Executor:
             "list_workspace": self._list_workspace,
             "write_text": self._write_text,
             "read_file": self._read_file,
+            "github_search": self._github_search,
+            "github_readme": self._github_readme,
         }
         handler = handlers.get(name)
         if handler is None:
@@ -160,3 +163,13 @@ class Executor:
             return ToolResult(ok=False, data={"path": path}, error="文件不存在", summary=f"没有 {path}")
         text = self._clip(target.read_text(encoding="utf-8"))
         return ToolResult(ok=True, data={"path": path, "text": text}, summary=f"读到 {path}（{len(text)} 字）")
+
+    def _github_search(self, q: str) -> ToolResult:
+        from role_crew.github_tools import github_search
+
+        return github_search(q, self._github_token)
+
+    def _github_readme(self, repo: str) -> ToolResult:
+        from role_crew.github_tools import github_readme
+
+        return github_readme(repo, self._github_token)

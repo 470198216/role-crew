@@ -105,15 +105,20 @@
 
 ## 5. 角色与工具
 
-### 5.1 三个演示角色
+### 5.1 角色卡
 
 | 角色 | YAML | 工具 | 可 `call_role` |
 |---|---|---|---|
-| dispatcher | `roles/dispatcher.yaml` | `list_roles`、`call_role` | fixer、verifier |
+| dispatcher | `roles/dispatcher.yaml` | `list_roles`、`call_role` | fixer、verifier、scout |
 | fixer | `roles/fixer.yaml` | `write_text`、`read_file`、`list_workspace`、`call_role` | verifier |
 | verifier | `roles/verifier.yaml` | `read_file`、`list_workspace`、`call_role` | fixer |
+| scout | `roles/scout.yaml` | `github_search`、`github_readme`、`call_role` | fixer、verifier |
 
-以后加角色：新写一个 `roles/xxx.yaml`，在 `configs/tools.yaml` 登记工具，在 `executor.py` 的 `handlers` 里实现。不要让模型「创建角色并带任意命令」。
+查 GitHub 上的 Skill / Agent 仓库时，dispatcher 应 `call_role scout`，不要让 scout 去写文件（需要落盘再叫 fixer）。
+
+只访问 `https://api.github.com`。匿名有频率限制，可在 `.env` 加 `GITHUB_TOKEN`（GitHub 经典 PAT）。不能打开任意网页、不能搜百度。
+
+以后加角色：新写 `roles/xxx.yaml`，在 `configs/tools.yaml` 登记工具，在 `executor.py` 的 `handlers` 里实现。不要让模型「创建角色并带任意命令」。
 
 ### 5.2 工具谁执行
 
@@ -123,7 +128,9 @@
 | `list_workspace` | `Executor._list_workspace` | 列出 `workspace/` |
 | `write_text` | `Executor._write_text` | 相对路径、仅 `.txt`、禁 `..` |
 | `read_file` | `Executor._read_file` | 同上沙箱 |
-| `call_role` | **`Actor._call_role`**，不是 Executor | 嵌套再开一个 Actor；深度 ≤ `MAX_PEER_DEPTH`（默认 2） |
+| `github_search` | `github_tools.github_search` | GitHub 搜仓库，参数 `q` |
+| `github_readme` | `github_tools.github_readme` | 读 README，参数 `owner/name` |
+| `call_role` | **`Actor._call_role`**，不是 Executor | 嵌套再开一个 Actor；深度 ≤ `MAX_PEER_DEPTH` |
 | `submit_envelope` | `Actor._submit` | 提交信封，结束本角色本轮 |
 
 `role-crew tool --name call_role` 会失败：Executor 里标注了只能在 `run` 的 Actor 循环里用。
@@ -205,7 +212,7 @@ PowerShell 若拦 `Activate.ps1`，不必 activate，直接用上面的 `.\.venv
 .\.venv\Scripts\role-crew.exe demo
 .\.venv\Scripts\role-crew.exe roles
 .\.venv\Scripts\role-crew.exe tool --role fixer --name write_text --arg path=hello.txt --arg text=OK
-.\.venv\Scripts\role-crew.exe tool --role verifier --name read_file --arg path=hello.txt
+.\.venv\Scripts\role-crew.exe tool --role scout --name github_search --arg q="cursor skill OR claude skill"
 .\.venv\Scripts\python.exe -m pytest
 ```
 

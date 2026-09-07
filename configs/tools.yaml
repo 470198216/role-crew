@@ -17,3 +17,9 @@ tools:
     description: 调用另一角色完成其子任务。必须先完成本角色操作并拿到成功回执。
     args: [role, task]
     reserved: true
+  github_search:
+    description: 用 GitHub API 搜索仓库。q 为搜索词，例如 cursor skill OR claude skill agent n8n
+    args: [q]
+  github_readme:
+    description: 读取仓库 README。repo 为 owner/name，例如 anthropics/skills
+    args: [repo]

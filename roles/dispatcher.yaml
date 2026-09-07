@@ -6,3 +6,4 @@ tools:
 can_call:
   - fixer
   - verifier
+  - scout
