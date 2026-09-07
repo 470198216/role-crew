@@ -17,8 +17,9 @@ class LLMError(RuntimeError):
 
 
 class LLMClient:
-    def __init__(self, settings: Settings | None = None) -> None:
+    def __init__(self, settings: Settings | None = None, temperature: float | None = None) -> None:
         self.settings = settings or Settings()
+        self.temperature = 0.2 if temperature is None else temperature
 
     def ready(self) -> bool:
         key = self.settings.llm_api_key.strip()
@@ -46,7 +47,7 @@ class LLMClient:
         payload: dict[str, Any] = {
             "model": self.settings.llm_model,
             "messages": messages,
-            "temperature": 0.2,
+            "temperature": self.temperature,
             "max_tokens": 2048,
         }
         if tools:

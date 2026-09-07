@@ -115,6 +115,50 @@ def run_cmd(
         raise typer.Exit(1)
 
 
+@app.command("vote")
+def vote_cmd(
+    task: str = typer.Option(..., "--task", help="同一任务采样 n 次，对信封核做多数票"),
+    n: int = typer.Option(10, "--n", min=2, max=30, help="采样次数"),
+    temperature: float = typer.Option(0.7, "--temperature", help=">0 才会有差异；run 默认 0.2"),
+    min_ratio: float = typer.Option(0.5, "--min-ratio", help="低于此比例标为 unstable"),
+) -> None:
+    """多次询问后按意思（结构化核）投票，输出最高票结果和 k/n。"""
+    from role_crew.orchestrator import run_vote
+
+    settings = Settings()
+    llm = LLMClient(settings, temperature=temperature)
+    cards = load_registry()
+    try:
+        outcome = run_vote(task, n, settings=settings, llm=llm, cards=cards, min_ratio=min_ratio)
+    except LLMNotConfigured as exc:
+        _echo_json({"ok": False, "error": str(exc), "llm_ready": llm.ready()})
+        raise typer.Exit(2) from exc
+    except Exception as exc:
+        _echo_json({"ok": False, "error": str(exc)})
+        raise typer.Exit(1) from exc
+    k, total = outcome["k"], outcome["n"]
+    payload = {
+        "ok": bool(outcome.get("winner")) and not outcome["unstable"],
+        "task": task,
+        "model": settings.llm_model,
+        "temperature": temperature,
+        "n": total,
+        "k": k,
+        "probability": outcome["probability"],
+        "unstable": outcome["unstable"],
+        "winner": outcome.get("winner"),
+        "clusters": outcome.get("clusters"),
+        "trial_errors": outcome.get("trial_errors"),
+        "trace": outcome.get("trace"),
+        "hint": f"{k}/{total} 次落在同一核上。这是采样频率，不是标准答案的真实概率。",
+    }
+    _echo_json(payload)
+    if not outcome.get("winner"):
+        raise typer.Exit(1)
+    if outcome["unstable"]:
+        raise typer.Exit(3)
+
+
 def main() -> None:
     app()
 

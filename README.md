@@ -61,7 +61,7 @@
 | 8 | `src/role_crew/llm.py` | HTTP `chat/completions`；429 退避；密钥与入口匹配 |
 | 9 | `src/role_crew/main.py` | CLI：`roles` / `tool` / `demo` / `run` |
 | 10 | `src/role_crew/trace.py` | 每次运行一份 `traces/*.jsonl` |
-| 11 | `tests/test_demo.py`、`tests/test_actor.py` | 无网单测；`FakeLLM` 模拟 tool_calls |
+| 12 | `src/role_crew/vote.py` | 多次 run 后按信封核投票（忽略 note 原文） |
 
 配置入口：`src/role_crew/config.py`（项目根、`.env`、`MAX_AGENT_STEPS`、`MAX_PEER_DEPTH`）。
 
@@ -239,6 +239,16 @@ MAX_PEER_DEPTH=2
 ```
 
 stdout 是各角色信封列表；`traces/<时间>-<id>.jsonl` 可回放每一步 LLM / 工具。若刚跑过立刻再跑，可能 429，等几秒或看重试是否成功。
+
+### 7.3 多次询问取多数（vote）
+
+同一 `--task` 跑 n 次（默认 10），对信封的**结构化核**计票，不按 `note` 逐字比较。核包括：`status`、搜到的仓库名、写入的 `path`/`text`、是否有 error。
+
+```powershell
+.\.venv\Scripts\role-crew.exe vote --n 10 --temperature 0.7 --task "帮我查询 github 上有哪些 agent skill"
+```
+
+输出里的 `probability` 是 `k/n`（该类出现频率），**不是**标准答案的真实概率。`< 0.5` 时 `unstable=true`，进程退出码 3。温度要用大于 0，否则 10 次几乎相同。费用大约是 `run` 的 n 倍，也更容易 429。
 
 ---
 

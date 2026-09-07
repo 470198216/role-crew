@@ -104,6 +104,46 @@ def run_with_llm(task: str, crew: Any) -> list[Envelope]:
     return crew.envelopes
 
 
+def run_vote(
+    task: str,
+    n: int,
+    *,
+    settings: Any,
+    llm: Any,
+    cards: dict,
+    workspace: Path | None = None,
+    min_ratio: float = 0.5,
+) -> dict[str, Any]:
+    """同一任务跑 n 次，按信封核做多数票。"""
+    from role_crew.actor import Crew
+    from role_crew.vote import tally
+
+    if n < 2:
+        raise ValueError("n 至少为 2")
+    tracer = Tracer()
+    executor = Executor(workspace=workspace, tracer=tracer, roles=cards)
+    tracer.log("vote_start", task=task, n=n)
+    trials: list[list[Envelope]] = []
+    errors: list[str | None] = []
+    for i in range(n):
+        crew = Crew(settings=settings, llm=llm, executor=executor, tracer=tracer, roles=cards)
+        try:
+            envelopes = run_with_llm(task, crew)
+            trials.append(envelopes)
+            errors.append(None)
+            tracer.log("vote_trial", i=i, ok=True, envelopes=len(envelopes))
+        except Exception as exc:  # noqa: BLE001 - 单次失败不中断投票
+            trials.append([])
+            errors.append(str(exc)[:400])
+            tracer.log("vote_trial", i=i, ok=False, error=str(exc)[:400])
+    outcome = tally(trials, min_ratio=min_ratio)
+    outcome["task"] = task
+    outcome["trace"] = str(tracer.path)
+    outcome["trial_errors"] = errors
+    tracer.log("vote_end", k=outcome["k"], n=outcome["n"], unstable=outcome["unstable"])
+    return outcome
+
+
 def run_demo(workspace: Path | None = None, tracer: Tracer | None = None) -> list[Envelope]:
     """无 LLM：dispatcher 点名 → fixer 写并回读 → verifier 再读。"""
     tracer = tracer or Tracer()
