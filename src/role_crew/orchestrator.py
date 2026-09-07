@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Any
 
 from role_crew.envelope import Envelope, EvidenceItem, Handoff
 from role_crew.executor import Executor, ToolError
@@ -81,6 +82,26 @@ def run_verifier(executor: Executor, role: RoleCard, task: str) -> Envelope:
     if passed:
         env.require_verified_evidence()
     return env
+
+
+def run_with_llm(task: str, crew: Any) -> list[Envelope]:
+    """dispatcher 起手；模型可 call_role，也可 submit need_peer 由编排器接着跑。"""
+    from role_crew.actor import Actor
+
+    crew.tracer.log("run_start", task=task)
+    env = Actor(crew.roles["dispatcher"], crew, depth=0).run(task)
+    hops = 0
+    while env.status == "need_peer" and env.handoff and hops < crew.settings.max_peer_depth:
+        hops += 1
+        nxt = crew.roles.get(env.handoff.to)
+        if nxt is None:
+            break
+        env = Actor(nxt, crew, depth=hops).run(env.handoff.task)
+    crew.tracer.log(
+        "run_end",
+        ok=bool(crew.envelopes) and crew.envelopes[-1].status == "verified",
+    )
+    return crew.envelopes
 
 
 def run_demo(workspace: Path | None = None, tracer: Tracer | None = None) -> list[Envelope]:

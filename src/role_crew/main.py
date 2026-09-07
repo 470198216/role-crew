@@ -6,7 +6,6 @@ from typing import Optional
 
 import typer
 
-from role_crew.actor import Actor
 from role_crew.config import Settings
 from role_crew.executor import Executor, ToolError
 from role_crew.llm import LLMClient, LLMNotConfigured
@@ -82,27 +81,38 @@ def demo_cmd() -> None:
 
 @app.command("run")
 def run_cmd(
-    task: str = typer.Option(..., "--task", help="用户目标（下一版由 LLM 拆给各角色）"),
+    task: str = typer.Option(..., "--task", help="用户目标，由 dispatcher 分给各角色执行"),
 ) -> None:
-    """预留：接 API Key 后的多角色循环。第一版会明确拒绝。"""
+    """接 LLM：提问 → 工具 → 回执 → 再问，直到 verified 或步数用尽。"""
+    from role_crew.actor import Crew
+    from role_crew.orchestrator import run_with_llm
+
     settings = Settings()
     llm = LLMClient(settings)
     tracer = Tracer()
     cards = load_registry()
     executor = Executor(tracer=tracer, roles=cards)
-    actor = Actor(cards["dispatcher"], executor, llm, tracer)
+    crew = Crew(settings=settings, llm=llm, executor=executor, tracer=tracer, roles=cards)
     try:
-        actor.run(task)
+        envelopes = run_with_llm(task, crew)
     except LLMNotConfigured as exc:
-        _echo_json(
-            {
-                "ok": False,
-                "error": str(exc),
-                "llm_ready": llm.ready(),
-                "hint": "现在请用 role-crew demo；配好 .env 里的 LLM_API_KEY 后再实现 run",
-            }
-        )
+        _echo_json({"ok": False, "error": str(exc), "llm_ready": llm.ready()})
         raise typer.Exit(2) from exc
+    except Exception as exc:
+        _echo_json({"ok": False, "error": str(exc), "trace": str(tracer.path)})
+        raise typer.Exit(1) from exc
+    last = envelopes[-1] if envelopes else None
+    _echo_json(
+        {
+            "ok": bool(last and last.status == "verified"),
+            "task": task,
+            "model": settings.llm_model,
+            "steps": [env.model_dump() for env in envelopes],
+            "trace": str(tracer.path),
+        }
+    )
+    if not last or last.status != "verified":
+        raise typer.Exit(1)
 
 
 def main() -> None:

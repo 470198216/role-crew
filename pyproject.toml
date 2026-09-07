@@ -9,6 +9,7 @@ description = "Multi-role execute-then-handoff loop (envelope + allowlisted tool
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
+  "httpx>=0.27.0",
   "pydantic>=2.6.0",
   "pydantic-settings>=2.2.0",
   "pyyaml>=6.0.1",
@@ -18,7 +19,6 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = ["pytest>=8.0.0"]
-llm = ["httpx>=0.27.0"]
 
 [project.scripts]
 role-crew = "role_crew.main:app"

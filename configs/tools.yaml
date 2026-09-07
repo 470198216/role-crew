@@ -14,6 +14,6 @@ tools:
     description: 读取 workspace 相对路径文本
     args: [path]
   call_role:
-    description: 调用另一角色完成其子任务（下一版接 LLM 后启用）
+    description: 调用另一角色完成其子任务。必须先完成本角色操作并拿到成功回执。
     args: [role, task]
     reserved: true

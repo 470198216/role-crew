@@ -4,5 +4,6 @@ tools:
   - write_text
   - read_file
   - list_workspace
+  - call_role
 can_call:
   - verifier

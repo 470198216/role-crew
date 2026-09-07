@@ -42,7 +42,7 @@ def test_call_role_reserved(tmp_path: Path) -> None:
     ex = Executor(workspace=tmp_path)
     result = ex.run(fake, "call_role", role="fixer", task="x")
     assert result.ok is False
-    assert "预留" in (result.error or "")
+    assert "只能在 role-crew run" in (result.error or "")
 
 
 def test_demo_pipeline(tmp_path: Path) -> None:

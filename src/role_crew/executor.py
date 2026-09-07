@@ -91,8 +91,13 @@ class Executor:
         spec = self.specs.get(name)
         if spec is None:
             raise ToolError(f"未知工具 {name}")
-        if spec.reserved:
-            result = ToolResult(ok=False, data={}, error=f"{name} 预留到下一版（接 LLM 后启用）", summary="reserved")
+        if spec.reserved or name == "call_role":
+            result = ToolResult(
+                ok=False,
+                data={},
+                error="call_role 只能在 role-crew run 的 Actor 循环里使用",
+                summary="reserved",
+            )
             self._log(role_card.id, name, args, result)
             return result
         missing = [key for key in spec.args if key not in args or args[key] is None]
