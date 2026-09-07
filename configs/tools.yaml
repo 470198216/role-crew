@@ -1,0 +1,19 @@
+defaults:
+  max_output_bytes: 65536
+  max_text_chars: 4096
+
+tools:
+  list_roles:
+    description: 列出全部角色、职责、工具和可调用对象
+  list_workspace:
+    description: 列出 workspace 目录下的文件
+  write_text:
+    description: 把文本写入 workspace 相对路径（仅 .txt）
+    args: [path, text]
+  read_file:
+    description: 读取 workspace 相对路径文本
+    args: [path]
+  call_role:
+    description: 调用另一角色完成其子任务（下一版接 LLM 后启用）
+    args: [role, task]
+    reserved: true

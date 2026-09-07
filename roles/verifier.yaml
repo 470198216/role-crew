@@ -1,0 +1,7 @@
+id: verifier
+summary: 再读目标文件。内容符合预期才 verified，否则 failed 并可以打回 fixer。
+tools:
+  - read_file
+  - list_workspace
+can_call:
+  - fixer

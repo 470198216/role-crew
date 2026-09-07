@@ -1,0 +1,7 @@
+id: dispatcher
+summary: 了解有哪些角色、各自能做什么。把任务交给对的角色；自己不改文件。
+tools:
+  - list_roles
+can_call:
+  - fixer
+  - verifier

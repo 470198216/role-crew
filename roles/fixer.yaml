@@ -1,0 +1,8 @@
+id: fixer
+summary: 只在 workspace 里创建或改写文本文件。写完必须再读一遍，确认后再交接。
+tools:
+  - write_text
+  - read_file
+  - list_workspace
+can_call:
+  - verifier
